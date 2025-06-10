@@ -13,11 +13,11 @@ import androidx.fragment.app.Fragment;
 
 import com.example.finalmobile2025.models.Question;
 
-public class QuestionFragment extends Fragment {
-    private static final String ARG_QUESTION = "question";
+public class QuestionFragment extends Fragment {    private static final String ARG_QUESTION = "question";
     private static final String ARG_QUESTION_NUMBER = "question_number";
     private static final String ARG_TOTAL_QUESTIONS = "total_questions";
     private static final String ARG_CURRENT_ANSWER = "current_answer";
+    private static final String ARG_IS_MARKED = "is_marked";
     
     private Question question;
     private int questionNumber;
@@ -28,21 +28,25 @@ public class QuestionFragment extends Fragment {
     private TextView tvQuestionNumber;
     private TextView tvQuestionType;
     private TextView tvQuestionText;
-    private EditText etAnswer;
-    
-    public static QuestionFragment newInstance(Question question, int questionNumber, 
-                                             int totalQuestions, String currentAnswer) {
+    private EditText etAnswer;    public static QuestionFragment newInstance(Question question, int questionNumber, 
+                                             int totalQuestions, String currentAnswer, boolean isMarked) {
         QuestionFragment fragment = new QuestionFragment();
         Bundle args = new Bundle();
         args.putSerializable(ARG_QUESTION, question);
         args.putInt(ARG_QUESTION_NUMBER, questionNumber);
         args.putInt(ARG_TOTAL_QUESTIONS, totalQuestions);
         args.putString(ARG_CURRENT_ANSWER, currentAnswer);
+        args.putBoolean(ARG_IS_MARKED, isMarked);
         fragment.setArguments(args);
         return fragment;
     }
-    
-    @Override
+
+    // Backward compatibility method
+    public static QuestionFragment newInstance(Question question, int questionNumber, 
+                                             int totalQuestions, String currentAnswer) {
+        return newInstance(question, questionNumber, totalQuestions, currentAnswer, false);
+    }
+      @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
@@ -50,6 +54,7 @@ public class QuestionFragment extends Fragment {
             questionNumber = getArguments().getInt(ARG_QUESTION_NUMBER);
             totalQuestions = getArguments().getInt(ARG_TOTAL_QUESTIONS);
             currentAnswer = getArguments().getString(ARG_CURRENT_ANSWER, "");
+            isMarked = getArguments().getBoolean(ARG_IS_MARKED, false);
         }
     }
     
@@ -84,13 +89,11 @@ public class QuestionFragment extends Fragment {
     public String getCurrentAnswer() {
         return etAnswer.getText().toString().trim();
     }
-    
-    public boolean isMarked() {
-        return isMarked;
+      public boolean isMarked() {
+        return this.isMarked;
     }
-    
-    public void toggleMarkStatus() {
-        isMarked = !isMarked;
+      public void toggleMarkStatus() {
+        this.isMarked = !this.isMarked;
     }
     
     public void setMarked(boolean marked) {

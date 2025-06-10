@@ -50,10 +50,11 @@ public class TestStartActivity extends AppCompatActivity {
     private List<ApiQuestion> apiQuestions;
     private int currentQuestionIndex = 0;
     private CountDownTimer countDownTimer;
-    private ParticipantDAO participantDAO;
-      // Track previous answers to detect changes
+    private ParticipantDAO participantDAO;    // Track previous answers to detect changes
     private Map<String, String> previousAnswers = new HashMap<>();
-      // Track if essay submission is in progress
+    // Track mark status for each question
+    private Map<String, Boolean> markStatusMap = new HashMap<>();
+    // Track if essay submission is in progress
     private boolean isEssaySubmissionInProgress = false;
     
     // Reference to the dialog confirm button for dynamic updates
@@ -168,8 +169,7 @@ public class TestStartActivity extends AppCompatActivity {
         }
         return convertedQuestions;
     }
-    
-    private void initializePreviousAnswers() {
+      private void initializePreviousAnswers() {
         // Initialize the previous answers map with current answers from the API
         if (apiQuestions != null) {
             for (ApiQuestion apiQuestion : apiQuestions) {
@@ -179,11 +179,15 @@ public class TestStartActivity extends AppCompatActivity {
                     
                     String questionId = apiQuestion.getId();
                     String answerText = apiQuestion.getEssay().getAnswer().getAnswerText();
+                    boolean isMarked = apiQuestion.getEssay().getAnswer().isMarked();
+                    
                     previousAnswers.put(questionId, answerText != null ? answerText : "");
+                    markStatusMap.put(questionId, isMarked);
                 }
             }
         }
         Log.d("TestStartActivity", "Initialized previous answers for " + previousAnswers.size() + " essay questions");
+        Log.d("TestStartActivity", "Initialized mark status for " + markStatusMap.size() + " essay questions");
     }
     
     private String stripHtmlTags(String html) {
@@ -215,8 +219,7 @@ public class TestStartActivity extends AppCompatActivity {
         
         countDownTimer.start();
     }
-    
-    private void loadQuestion(int questionIndex) {
+      private void loadQuestion(int questionIndex) {
         if (questions == null || questionIndex < 0 || questionIndex >= questions.size()) {
             return;
         }
@@ -228,14 +231,15 @@ public class TestStartActivity extends AppCompatActivity {
             question,
             questionIndex + 1,
             questions.size(),
-            getCurrentAnswer(question.getId())
+            getCurrentAnswer(question.getId()),
+            getCurrentMarkedStatus(question.getId())
         );
         
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction transaction = fragmentManager.beginTransaction();
         transaction.replace(R.id.fragment_container, fragment);
         transaction.commit();
-    }    private String getCurrentAnswer(String questionId) {
+    }private String getCurrentAnswer(String questionId) {
         // Get answer from the API data structure
         if (apiQuestions != null) {
             for (ApiQuestion apiQuestion : apiQuestions) {
@@ -248,6 +252,19 @@ public class TestStartActivity extends AppCompatActivity {
             }
         }
         return "";
+    }    private boolean getCurrentMarkedStatus(String questionId) {
+        // Get mark status from the API data structure
+        if (apiQuestions != null) {
+            for (ApiQuestion apiQuestion : apiQuestions) {
+                if (questionId.equals(apiQuestion.getId()) && 
+                    apiQuestion.getEssay() != null && 
+                    apiQuestion.getEssay().getAnswer() != null) {
+                    return apiQuestion.getEssay().getAnswer().isMarked();
+                }
+            }
+        }
+        // Fallback to tracking map
+        return markStatusMap.getOrDefault(questionId, false);
     }
       private void navigateToPreviousQuestion() {
         if (currentQuestionIndex > 0) {
@@ -309,22 +326,31 @@ public class TestStartActivity extends AppCompatActivity {
         
         dialog.show();
     }
-    
-    private void markCurrentQuestion() {
+      private void markCurrentQuestion() {
         // Toggle mark status for current question
         Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
         if (fragment instanceof QuestionFragment) {
+            boolean wasMarked = ((QuestionFragment) fragment).isMarked();
             ((QuestionFragment) fragment).toggleMarkStatus();
+            boolean isNowMarked = ((QuestionFragment) fragment).isMarked();
+            
+            Question currentQuestion = questions.get(currentQuestionIndex);
+            Log.d("TestStartActivity", "Toggled mark for question " + currentQuestion.getId() + 
+                  " from " + wasMarked + " to " + isNowMarked);
         }
         
         // Update mark button appearance
         updateMarkButton();
     }
-    
-    private void updateMarkButton() {
+      private void updateMarkButton() {
         Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
         if (fragment instanceof QuestionFragment) {
             boolean isMarked = ((QuestionFragment) fragment).isMarked();
+            Question currentQuestion = questions.get(currentQuestionIndex);
+            
+            Log.d("TestStartActivity", "Updating mark button for question " + currentQuestion.getId() + 
+                  ", isMarked: " + isMarked);
+            
             if (isMarked) {
                 btnMark.setText("Unmark");
                 btnMark.setTextColor(getResources().getColor(android.R.color.holo_orange_light));
@@ -333,8 +359,7 @@ public class TestStartActivity extends AppCompatActivity {
                 btnMark.setTextColor(getResources().getColor(android.R.color.white));
             }
         }
-    }
-      private void updateNavigationButtons() {
+    }private void updateNavigationButtons() {
         // Update Previous button
         btnPrevious.setEnabled(currentQuestionIndex > 0);
         
@@ -349,7 +374,13 @@ public class TestStartActivity extends AppCompatActivity {
             btnFinish.setVisibility(View.GONE);
         }
         
-        updateMarkButton();
+        // Update mark button after a small delay to ensure fragment is ready
+        btnMark.post(new Runnable() {
+            @Override
+            public void run() {
+                updateMarkButton();
+            }
+        });
     }
     
     private void saveCurrentAnswer() {
@@ -370,12 +401,17 @@ public class TestStartActivity extends AppCompatActivity {
                     apiQuestion.getEssay() != null && 
                     apiQuestion.getEssay().getAnswer() != null) {
                     apiQuestion.getEssay().getAnswer().setAnswerText(answerText);
+                    apiQuestion.getEssay().getAnswer().setMarked(isMarked);
+                    // Update tracking map
+                    markStatusMap.put(questionId, isMarked);
                     return;
                 }
             }
         }
+        // Update tracking map even if API data is not found
+        markStatusMap.put(questionId, isMarked);
         Log.w("TestStartActivity", "Answer not found for question: " + questionId);
-    }    private void submitEssayAnswerToServer(String questionId, String answerText) {
+    }private void submitEssayAnswerToServer(String questionId, String answerText) {
         // Find the answer ID for this question
         String answerId = getAnswerIdForQuestion(questionId);
         if (answerId == null) {

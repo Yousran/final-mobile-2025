@@ -22,10 +22,12 @@ public class AnswerData {
     private String scoreExplanation;
 
     @SerializedName("createdAt")
-    private String createdAt;
-
+    private String createdAt;    
     @SerializedName("updatedAt")
     private String updatedAt;
+
+    @SerializedName("isMarked")
+    private boolean isMarked;
 
     // Getters and Setters
     public String getId() {
@@ -86,9 +88,15 @@ public class AnswerData {
 
     public String getUpdatedAt() {
         return updatedAt;
+    }    public void setUpdatedAt(String updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
-    public void setUpdatedAt(String updatedAt) {
-        this.updatedAt = updatedAt;
+    public boolean isMarked() {
+        return isMarked;
+    }
+
+    public void setMarked(boolean marked) {
+        isMarked = marked;
     }
 }
