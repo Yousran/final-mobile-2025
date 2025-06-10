@@ -1,17 +1,22 @@
 package com.example.finalmobile2025;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
+import android.app.ActivityManager;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -51,8 +56,7 @@ public class TestStartActivity extends AppCompatActivity {
     private int currentQuestionIndex = 0;
     private CountDownTimer countDownTimer;
     private ParticipantDAO participantDAO;    // Track previous answers to detect changes
-    private Map<String, String> previousAnswers = new HashMap<>();
-    // Track mark status for each question
+    private Map<String, String> previousAnswers = new HashMap<>();    // Track mark status for each question
     private Map<String, Boolean> markStatusMap = new HashMap<>();
     // Track if essay submission is in progress
     private boolean isEssaySubmissionInProgress = false;
@@ -60,10 +64,16 @@ public class TestStartActivity extends AppCompatActivity {
     // Reference to the dialog confirm button for dynamic updates
     private MaterialButton dialogConfirmButton = null;
     
-    @Override
+    // App exit prevention variables
+    private OnBackPressedCallback onBackPressedCallback;
+    private boolean isTestInProgress = false;
+      @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_test_start);
+        
+        // Set up app exit prevention measures
+        setupExitPrevention();
         
         participantDAO = new ParticipantDAO(this);
         
@@ -78,10 +88,41 @@ public class TestStartActivity extends AppCompatActivity {
             finish();
             return;
         }
-        
-        initViews();
+          initViews();
         setupClickListeners();
         fetchParticipantData();
+    }
+    
+    /**
+     * Set up comprehensive measures to prevent users from exiting the app during the test
+     */
+    private void setupExitPrevention() {
+        // 1. Set up modern back button handling
+        onBackPressedCallback = new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (isTestInProgress) {
+                    showExitWarning();
+                } else {
+                    // Allow back press if test hasn't started yet
+                    setEnabled(false);
+                    onBackPressed();
+                }
+            }
+        };
+        getOnBackPressedDispatcher().addCallback(this, onBackPressedCallback);
+        
+        // 2. Prevent task switching and recent apps during test
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, 
+                           WindowManager.LayoutParams.FLAG_SECURE);
+    }
+    
+    /**
+     * Show warning when user tries to exit during test
+     */
+    private void showExitWarning() {
+        Toast.makeText(this, "Cannot exit during test. Please complete or submit your test.", 
+                      Toast.LENGTH_LONG).show();
     }
       private void initViews() {
         tvUsername = findViewById(R.id.tv_username);
@@ -124,6 +165,9 @@ public class TestStartActivity extends AppCompatActivity {
             }
         });
     }      private void setupTestInterface() {
+        // Mark test as in progress to enable exit prevention
+        isTestInProgress = true;
+        
         // Set participant info
         tvUsername.setText(participantData.getUsername());
         
@@ -510,6 +554,11 @@ public class TestStartActivity extends AppCompatActivity {
             updateAnswerInData(questionId, currentAnswer, isMarked);
         }
     }    private void finishTest() {
+        // Mark test as completed to allow normal exit
+        isTestInProgress = false;
+        
+        // Save current answer before finishing
+        saveCurrentAnswerAndSubmitIfChanged();
         
         // Show completion message
         Toast.makeText(this, "Test completed!", Toast.LENGTH_SHORT).show();
@@ -521,19 +570,98 @@ public class TestStartActivity extends AppCompatActivity {
         startActivity(intent);
         finish();
     }
-    
-    @Override
+      @Override
     protected void onDestroy() {
         super.onDestroy();
         if (countDownTimer != null) {
             countDownTimer.cancel();
         }
-    }    @SuppressWarnings("MissingSuperCall")
+        // Clean up callback
+        if (onBackPressedCallback != null) {
+            onBackPressedCallback.remove();
+        }
+    }
+    
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Prevent background during active test
+        if (isTestInProgress) {
+            Log.d("TestStartActivity", "App paused during test - bringing back to foreground");
+            // Show a toast to indicate the restriction
+            Toast.makeText(this, "Cannot minimize app during test", Toast.LENGTH_SHORT).show();
+        }
+    }
+    
+    @Override
+    protected void onStop() {
+        super.onStop();
+        // Prevent app from being stopped during test
+        if (isTestInProgress) {
+            Log.d("TestStartActivity", "App stopped during test - attempting to resume");
+            Toast.makeText(this, "Test must remain active", Toast.LENGTH_SHORT).show();
+        }
+    }
+    
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        // Prevent hardware keys that could exit the app during test
+        if (isTestInProgress) {
+            switch (keyCode) {
+                case KeyEvent.KEYCODE_HOME:
+                case KeyEvent.KEYCODE_APP_SWITCH:
+                case KeyEvent.KEYCODE_MENU:
+                    showExitWarning();
+                    return true; // Consume the event
+                case KeyEvent.KEYCODE_BACK:
+                    showExitWarning();
+                    return true; // Consume the event
+                default:
+                    break;
+            }
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+    
+    @Override
+    public void onUserLeaveHint() {
+        super.onUserLeaveHint();
+        // Called when user presses home button or switches to another app
+        if (isTestInProgress) {
+            Log.d("TestStartActivity", "User attempted to leave app during test");
+            showExitWarning();
+            // Try to bring the app back to foreground
+            bringToForeground();
+        }
+    }
+    
+    /**
+     * Attempt to bring the app back to foreground during test
+     */
+    private void bringToForeground() {
+        try {
+            ActivityManager activityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+            if (activityManager != null) {
+                // For Android 10+ this method is restricted, but we try anyway
+                Intent intent = new Intent(this, TestStartActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                startActivity(intent);
+            }
+        } catch (Exception e) {
+            Log.w("TestStartActivity", "Could not bring app to foreground: " + e.getMessage());
+        }
+    }    /**
+     * Legacy back press handling - now handled by OnBackPressedCallback
+     * Kept for compatibility but redirects to modern handler
+     */
+    @SuppressWarnings("MissingSuperCall")
     @Override
     public void onBackPressed() {
-        // Prevent user from going back during test
-        Toast.makeText(this, "Cannot go back during test", Toast.LENGTH_SHORT).show();
-        // Intentionally not calling super.onBackPressed() to prevent going back
+        if (isTestInProgress) {
+            showExitWarning();
+        } else {
+            super.onBackPressed();
+        }
     }
     
     private void updateDialogConfirmButtonState() {
