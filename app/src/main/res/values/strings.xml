@@ -1,3 +1,16 @@
 <resources>
     <string name="app_name">Autograde</string>
+    <string name="back_to_home">Back to Home</string>
+    <string name="question_mark">\??</string>
+    <string name="dash">-</string>
+    <string name="next">Next</string>
+    <string name="mark">Mark</string>
+    <string name="previous">Previous</string>
+    <string name="start_test">Start Test</string>
+    <string name="enter_join_code">Enter Join Code</string>
+    <string name="enter_code_here">Enter code here</string>
+    <string name="join_room">Join Room</string>
+    <string name="essay">Essay</string>
+    <string name="question_text_will_appear_here">Question text will appear here</string>
+    <string name="write_your_answer_here">Write your answer here...</string>
 </resources>

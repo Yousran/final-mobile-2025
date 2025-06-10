@@ -32,7 +32,7 @@
                 android:id="@+id/tv_test_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="test multiple select"
+                android:text="@string/dash"
                 android:textSize="20sp"
                 android:textStyle="bold"
                 android:textColor="?attr/colorOnSurface"
@@ -65,7 +65,7 @@
                         android:id="@+id/tv_test_duration"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="30 minutes"
+                        android:text="@string/dash"
                         android:textSize="12sp"
                         android:textColor="?attr/colorOnSurfaceVariant" />
 
@@ -90,7 +90,7 @@
                         android:id="@+id/tv_question_count"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="0 Questions"
+                        android:text="@string/dash"
                         android:textSize="12sp"
                         android:textColor="?attr/colorOnSurfaceVariant" />
 
@@ -115,7 +115,7 @@
                         android:id="@+id/tv_participant_count"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="0 Participants"
+                        android:text="@string/dash"
                         android:textSize="12sp"
                         android:textColor="?attr/colorOnSurfaceVariant" />
 
@@ -128,7 +128,7 @@
                 android:id="@+id/btn_start_test"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:text="Start Test"
+                android:text="@string/start_test"
                 android:textColor="?attr/colorOnPrimary"
                 app:backgroundTint="?attr/colorPrimary"
                 android:textStyle="bold"

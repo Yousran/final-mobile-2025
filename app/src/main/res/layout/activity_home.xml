@@ -45,7 +45,7 @@
                 android:id="@+id/tv_join_code_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Enter Join Code"
+                android:text="@string/enter_join_code"
                 android:textSize="18sp"
                 android:textStyle="bold"
                 android:textColor="?attr/colorOnSurface"
@@ -64,7 +64,7 @@
                     android:id="@+id/et_join_code"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Enter code here"
+                    android:hint="@string/enter_code_here"
                     android:textColor="?attr/colorOnSurface"
                     android:textColorHint="?attr/colorOnSurfaceVariant" />
 
@@ -74,7 +74,7 @@
                 android:id="@+id/btn_join"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:text="Join Room"
+                android:text="@string/join_room"
                 android:textColor="?attr/colorOnPrimary"
                 app:backgroundTint="?attr/colorPrimary"
                 app:cornerRadius="8dp" />

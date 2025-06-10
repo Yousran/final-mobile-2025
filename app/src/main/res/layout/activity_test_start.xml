@@ -23,7 +23,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="username"
+            android:text="@string/dash"
             android:textColor="?attr/colorPrimary"
             android:textSize="20sp"
             android:textStyle="bold" />        
@@ -32,7 +32,7 @@
             android:id="@+id/tv_timer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="29:18"
+            android:text="@string/dash"
             android:textColor="?attr/colorOnPrimary"
             android:textSize="14sp"
             android:textStyle="bold"
@@ -59,7 +59,7 @@
             android:layout_marginTop="16dp"
             android:layout_marginEnd="16dp"
             android:layout_marginBottom="8dp"
-            android:text="English Essay Test"
+            android:text="@string/dash"
             android:textColor="?attr/colorOnSurface"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -90,7 +90,7 @@
             android:layout_height="48dp"
             android:layout_marginEnd="8dp"
             android:layout_weight="1"
-            android:text="Previous"
+            android:text="@string/previous"
             android:textAllCaps="false"
             android:textColor="?attr/colorOnPrimary"
             android:textSize="14sp"
@@ -105,12 +105,12 @@
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
             android:layout_weight="1"
-            android:text="Mark"
+            android:text="@string/mark"
             android:textAllCaps="false"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="14sp"
             style="@style/Widget.Material3.Button.TextButton"
-            app:cornerRadius="8dp" />        
+            app:cornerRadius="8dp" />
         <!-- Next/Finish Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_next"
@@ -118,7 +118,7 @@
             android:layout_height="48dp"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:text="Next"
+            android:text="@string/next"
             android:textAllCaps="false"
             android:textColor="?attr/colorOnPrimary"
             android:textSize="14sp"
