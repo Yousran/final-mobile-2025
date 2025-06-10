@@ -7,11 +7,9 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import android.content.Intent;
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.TextView;
@@ -44,6 +42,7 @@ public class TestStartActivity extends AppCompatActivity {
     private MaterialButton btnPrevious;
     private MaterialButton btnMark;
     private MaterialButton btnNext;
+    private MaterialButton btnFinish;
     
     private String participantId;
     private ParticipantData participantData;
@@ -79,19 +78,19 @@ public class TestStartActivity extends AppCompatActivity {
         setupClickListeners();
         fetchParticipantData();
     }
-    
-    private void initViews() {
+      private void initViews() {
         tvUsername = findViewById(R.id.tv_username);
         tvTimer = findViewById(R.id.tv_timer);
         tvTestTitle = findViewById(R.id.tv_test_title);
         btnPrevious = findViewById(R.id.btn_previous);
         btnMark = findViewById(R.id.btn_mark);
         btnNext = findViewById(R.id.btn_next);
+        btnFinish = findViewById(R.id.btn_finish);
     }
-    
-    private void setupClickListeners() {
+      private void setupClickListeners() {
         btnPrevious.setOnClickListener(v -> navigateToPreviousQuestion());
         btnNext.setOnClickListener(v -> navigateToNextQuestion());
+        btnFinish.setOnClickListener(v -> showFinishConfirmationDialog());
         btnMark.setOnClickListener(v -> markCurrentQuestion());
     }
     
@@ -259,10 +258,8 @@ public class TestStartActivity extends AppCompatActivity {
             currentQuestionIndex++;
             loadQuestion(currentQuestionIndex);
             updateNavigationButtons();
-        } else {
-            // This is the last question, show confirmation dialog before finishing
-            showFinishConfirmationDialog();
-        }    }
+        }
+    }
       private void showFinishConfirmationDialog() {
         // Inflate the custom dialog layout
         LayoutInflater inflater = getLayoutInflater();
@@ -318,21 +315,19 @@ public class TestStartActivity extends AppCompatActivity {
             }
         }
     }
-    
-    private void updateNavigationButtons() {
+      private void updateNavigationButtons() {
         // Update Previous button
         btnPrevious.setEnabled(currentQuestionIndex > 0);
         
-        // Update Next button
+        // Update Next and Finish button visibility
         if (currentQuestionIndex == questions.size() - 1) {
-            btnNext.setText("Finish");
-            btnNext.setBackgroundColor(getResources().getColor(R.color.success));
+            // Last question - show Finish button, hide Next button
+            btnNext.setVisibility(View.GONE);
+            btnFinish.setVisibility(View.VISIBLE);
         } else {
-            btnNext.setText("Next");
-            // Resolve colorPrimary attribute to a color
-            TypedValue typedValue = new TypedValue();
-            getTheme().resolveAttribute(com.google.android.material.R.attr.colorPrimary, typedValue, true);
-            btnNext.setBackgroundColor(typedValue.data);
+            // Not last question - show Next button, hide Finish button
+            btnNext.setVisibility(View.VISIBLE);
+            btnFinish.setVisibility(View.GONE);
         }
         
         updateMarkButton();
@@ -361,14 +356,16 @@ public class TestStartActivity extends AppCompatActivity {
             }
         }
         Log.w("TestStartActivity", "Answer not found for question: " + questionId);
-    }
-      private void submitEssayAnswerToServer(String questionId, String answerText) {
+    }    private void submitEssayAnswerToServer(String questionId, String answerText) {
         // Find the answer ID for this question
         String answerId = getAnswerIdForQuestion(questionId);
         if (answerId == null) {
             Log.w("TestStartActivity", "Answer ID not found for question: " + questionId);
             return;
         }
+
+        // Disable finish button while submitting
+        btnFinish.setEnabled(false);
 
         EssayAnswerRequest request = new EssayAnswerRequest(answerId, participantId, answerText);
         ApiService apiService = ApiClient.getApiService();
@@ -377,6 +374,9 @@ public class TestStartActivity extends AppCompatActivity {
         call.enqueue(new Callback<EssayAnswerResponse>() {
             @Override
             public void onResponse(Call<EssayAnswerResponse> call, Response<EssayAnswerResponse> response) {
+                // Re-enable finish button after response
+                btnFinish.setEnabled(true);
+                
                 if (response.isSuccessful() && response.body() != null) {
                     EssayAnswerResponse essayResponse = response.body();
                     Log.d("TestStartActivity", "Essay answer submitted successfully for question: " + questionId);
@@ -392,6 +392,9 @@ public class TestStartActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<EssayAnswerResponse> call, Throwable t) {
+                // Re-enable finish button after failure
+                btnFinish.setEnabled(true);
+                
                 Log.e("TestStartActivity", "Error submitting essay answer: " + t.getMessage());
                 // Note: Network failures don't revert the previousAnswers map either
                 // This prevents spam retries on every navigation if there's a persistent network issue

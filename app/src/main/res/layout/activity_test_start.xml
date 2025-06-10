@@ -95,8 +95,7 @@
             android:textColor="?attr/colorOnPrimary"
             android:textSize="14sp"
             app:backgroundTint="?attr/colorPrimary"
-            app:cornerRadius="8dp" />
-
+            app:cornerRadius="8dp" />        
         <!-- Mark Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_mark"
@@ -111,7 +110,8 @@
             android:textSize="14sp"
             style="@style/Widget.Material3.Button.TextButton"
             app:cornerRadius="8dp" />
-        <!-- Next/Finish Button -->
+
+        <!-- Next Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_next"
             android:layout_width="0dp"
@@ -123,7 +123,23 @@
             android:textColor="?attr/colorOnPrimary"
             android:textSize="14sp"
             app:backgroundTint="?attr/colorPrimary"
-            app:cornerRadius="8dp" />
+            app:cornerRadius="8dp"
+            android:visibility="visible" />
+
+        <!-- Finish Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_finish"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="@string/finish"
+            android:textAllCaps="false"
+            android:textColor="?attr/colorOnPrimary"
+            android:textSize="14sp"
+            app:backgroundTint="@color/success"
+            app:cornerRadius="8dp"
+            android:visibility="gone" />
 
     </LinearLayout>
 
