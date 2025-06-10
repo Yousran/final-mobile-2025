@@ -3,6 +3,7 @@ package com.example.finalmobile2025;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AlertDialog;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -14,7 +15,10 @@ import android.widget.Toast;
 
 import com.example.finalmobile2025.api.ApiClient;
 import com.example.finalmobile2025.api.ApiService;
+import com.example.finalmobile2025.database.ParticipantDAO;
 import com.example.finalmobile2025.models.PoolingResponse;
+import com.example.finalmobile2025.models.StartTestRequest;
+import com.example.finalmobile2025.models.StartTestResponse;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 
@@ -26,18 +30,18 @@ public class TestActivity extends AppCompatActivity {
     private TextView tvTestTitle;
     private TextView tvTestDuration;
     private TextView tvQuestionCount;
-    private TextView tvParticipantCount;
-    private MaterialButton btnStartTest;
+    private TextView tvParticipantCount;    private MaterialButton btnStartTest;
+    private MaterialButton btnConfirm; // Add this field
     private String joinCode;
-    private String testTitle;
-    private String testDescription;
+    private String testTitle;    private String testDescription;
     private int testDuration;
     private boolean acceptResponses;
+    private ParticipantDAO participantDAO;
     
     // Polling mechanism
     private Handler pollingHandler;
     private Runnable pollingRunnable;
-    private static final int POLLING_INTERVAL = 5000; // 5 seconds    @Override
+    private static final int POLLING_INTERVAL = 5000; // 5 seconds@Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_test);
@@ -45,9 +49,10 @@ public class TestActivity extends AppCompatActivity {
         // Get data from intent
         joinCode = getIntent().getStringExtra("JOIN_CODE");
         testTitle = getIntent().getStringExtra("TEST_TITLE");
-        testDescription = getIntent().getStringExtra("TEST_DESCRIPTION");
-        testDuration = getIntent().getIntExtra("TEST_DURATION", 0);
+        testDescription = getIntent().getStringExtra("TEST_DESCRIPTION");        testDuration = getIntent().getIntExtra("TEST_DURATION", 0);
         acceptResponses = getIntent().getBooleanExtra("ACCEPT_RESPONSES", false);
+        
+        participantDAO = new ParticipantDAO(this);
         
         initViews();
         setupTestInfo();
@@ -93,11 +98,10 @@ public class TestActivity extends AppCompatActivity {
         // Inflate the custom dialog layout
         LayoutInflater inflater = getLayoutInflater();
         View dialogView = inflater.inflate(R.layout.dialog_confirm_start, null);
-        
-        // Get dialog components
+          // Get dialog components
         TextInputEditText etUsername = dialogView.findViewById(R.id.et_username);
         MaterialButton btnCancel = dialogView.findViewById(R.id.btn_cancel);
-        MaterialButton btnConfirm = dialogView.findViewById(R.id.btn_confirm);
+        btnConfirm = dialogView.findViewById(R.id.btn_confirm);
         
         // Create and configure the dialog
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -125,10 +129,55 @@ public class TestActivity extends AppCompatActivity {
         });
         
         dialog.show();
+    }      private void startTest(String username) {
+        // Show loading state
+        btnConfirm.setEnabled(false);
+        btnConfirm.setText("Starting...");
+        
+        // Create request
+        StartTestRequest request = new StartTestRequest(username);
+        
+        // Make API call
+        ApiService apiService = ApiClient.getApiService();
+        Call<StartTestResponse> call = apiService.startTest(joinCode, request);
+        
+        call.enqueue(new Callback<StartTestResponse>() {
+            @Override
+            public void onResponse(Call<StartTestResponse> call, Response<StartTestResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    StartTestResponse startResponse = response.body();
+                    String participantId = startResponse.getParticipantId();
+                    
+                    // Store participant ID in SQLite
+                    long result = participantDAO.insertParticipant(participantId, username, joinCode);
+                    
+                    if (result != -1) {
+                        // Successfully stored, navigate to test activity
+                        Intent intent = new Intent(TestActivity.this, TestStartActivity.class);
+                        intent.putExtra("PARTICIPANT_ID", participantId);
+                        startActivity(intent);
+                        finish(); // Close this activity
+                    } else {
+                        Toast.makeText(TestActivity.this, "Failed to save participant data", Toast.LENGTH_SHORT).show();
+                        resetConfirmButton();
+                    }
+                } else {
+                    Toast.makeText(TestActivity.this, "Failed to start test: " + response.code(), Toast.LENGTH_SHORT).show();
+                    resetConfirmButton();
+                }
+            }
+            
+            @Override
+            public void onFailure(Call<StartTestResponse> call, Throwable t) {
+                Toast.makeText(TestActivity.this, "Network error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                resetConfirmButton();
+            }
+        });
     }
-      private void startTest(String username) {
-        // TODO: Implement test start functionality with username
-        Toast.makeText(this, "Starting test for: " + username, Toast.LENGTH_SHORT).show();
+    
+    private void resetConfirmButton() {
+        btnConfirm.setEnabled(true);
+        btnConfirm.setText("Confirm");
     }
     
     private void setupPolling() {

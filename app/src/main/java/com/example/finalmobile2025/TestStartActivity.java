@@ -1,0 +1,327 @@
+package com.example.finalmobile2025;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
+
+import android.content.Intent;
+import android.os.Bundle;
+import android.os.CountDownTimer;
+import android.util.Log;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.example.finalmobile2025.api.ApiClient;
+import com.example.finalmobile2025.api.ApiService;
+import com.example.finalmobile2025.database.ParticipantDAO;
+import com.example.finalmobile2025.models.Answer;
+import com.example.finalmobile2025.models.ApiQuestion;
+import com.example.finalmobile2025.models.ParticipantData;
+import com.example.finalmobile2025.models.Question;
+import com.google.android.material.button.MaterialButton;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
+public class TestStartActivity extends AppCompatActivity {
+    private TextView tvUsername;
+    private TextView tvTimer;
+    private TextView tvTestTitle;
+    private MaterialButton btnPrevious;
+    private MaterialButton btnMark;
+    private MaterialButton btnNext;
+    
+    private String participantId;    private ParticipantData participantData;
+    private List<Question> questions;
+    private List<ApiQuestion> apiQuestions;
+    private int currentQuestionIndex = 0;
+    private CountDownTimer countDownTimer;
+    private ParticipantDAO participantDAO;
+    
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_test_start);
+        
+        participantDAO = new ParticipantDAO(this);
+        
+        // Get participant ID from intent or database
+        participantId = getIntent().getStringExtra("PARTICIPANT_ID");
+        if (participantId == null) {
+            participantId = participantDAO.getLatestParticipantId();
+        }
+        
+        if (participantId == null) {
+            Toast.makeText(this, "No participant data found", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+        
+        initViews();
+        setupClickListeners();
+        fetchParticipantData();
+    }
+    
+    private void initViews() {
+        tvUsername = findViewById(R.id.tv_username);
+        tvTimer = findViewById(R.id.tv_timer);
+        tvTestTitle = findViewById(R.id.tv_test_title);
+        btnPrevious = findViewById(R.id.btn_previous);
+        btnMark = findViewById(R.id.btn_mark);
+        btnNext = findViewById(R.id.btn_next);
+    }
+    
+    private void setupClickListeners() {
+        btnPrevious.setOnClickListener(v -> navigateToPreviousQuestion());
+        btnNext.setOnClickListener(v -> navigateToNextQuestion());
+        btnMark.setOnClickListener(v -> markCurrentQuestion());
+    }
+    
+    private void fetchParticipantData() {
+        ApiService apiService = ApiClient.getApiService();
+        Call<ParticipantData> call = apiService.getParticipantData(participantId);
+        
+        call.enqueue(new Callback<ParticipantData>() {
+            @Override
+            public void onResponse(Call<ParticipantData> call, Response<ParticipantData> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    participantData = response.body();
+                    setupTestInterface();
+                } else {
+                    Log.e("TestStartActivity", "Failed to fetch participant data: " + response.code());
+                    Toast.makeText(TestStartActivity.this, "Failed to load test data", Toast.LENGTH_SHORT).show();
+                    finish();
+                }
+            }
+            
+            @Override
+            public void onFailure(Call<ParticipantData> call, Throwable t) {
+                Log.e("TestStartActivity", "Network error: " + t.getMessage());
+                Toast.makeText(TestStartActivity.this, "Network error occurred", Toast.LENGTH_SHORT).show();
+                finish();
+            }
+        });
+    }
+      private void setupTestInterface() {
+        // Set participant info
+        tvUsername.setText(participantData.getUsername());
+        
+        // Set test title
+        if (participantData.getTest() != null) {
+            tvTestTitle.setText(participantData.getTest().getTitle());
+        }
+        
+        // Get questions and convert to our Question model
+        apiQuestions = participantData.getQuestions();
+        if (apiQuestions == null || apiQuestions.isEmpty()) {
+            Toast.makeText(this, "No questions available", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+        
+        // Convert ApiQuestion to Question for compatibility
+        questions = convertApiQuestionsToQuestions(apiQuestions);
+        
+        // Start timer
+        startTimer(participantData.getTimeRemaining());
+        
+        // Load first question
+        loadQuestion(currentQuestionIndex);
+        
+        // Update navigation buttons
+        updateNavigationButtons();
+    }
+    
+    private List<Question> convertApiQuestionsToQuestions(List<ApiQuestion> apiQuestions) {
+        List<Question> convertedQuestions = new ArrayList<>();
+        for (ApiQuestion apiQuestion : apiQuestions) {
+            Question question = new Question();
+            question.setId(apiQuestion.getId());
+            question.setQuestionText(stripHtmlTags(apiQuestion.getQuestionText())); // Remove HTML tags
+            question.setQuestionType(apiQuestion.getType());
+            question.setOrderIndex(apiQuestion.getOrder());
+            question.setPoints(0); // Default value
+            convertedQuestions.add(question);
+        }
+        return convertedQuestions;
+    }
+    
+    private String stripHtmlTags(String html) {
+        if (html == null) return "";
+        return html.replaceAll("<[^>]*>", "").trim();
+    }
+    
+    private void startTimer(int timeRemainingInSeconds) {
+        if (countDownTimer != null) {
+            countDownTimer.cancel();
+        }
+        
+        countDownTimer = new CountDownTimer(timeRemainingInSeconds * 1000L, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                long totalSeconds = millisUntilFinished / 1000;
+                long minutes = totalSeconds / 60;
+                long seconds = totalSeconds % 60;
+                tvTimer.setText(String.format("%02d:%02d", minutes, seconds));
+            }
+            
+            @Override
+            public void onFinish() {
+                tvTimer.setText("00:00");
+                // Auto-submit test when time runs out
+                finishTest();
+            }
+        };
+        
+        countDownTimer.start();
+    }
+    
+    private void loadQuestion(int questionIndex) {
+        if (questions == null || questionIndex < 0 || questionIndex >= questions.size()) {
+            return;
+        }
+        
+        Question question = questions.get(questionIndex);
+        
+        // Create and load question fragment
+        QuestionFragment fragment = QuestionFragment.newInstance(
+            question,
+            questionIndex + 1,
+            questions.size(),
+            getCurrentAnswer(question.getId())
+        );
+        
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        FragmentTransaction transaction = fragmentManager.beginTransaction();
+        transaction.replace(R.id.fragment_container, fragment);
+        transaction.commit();
+    }    private String getCurrentAnswer(String questionId) {
+        // Get answer from the API data structure
+        if (apiQuestions != null) {
+            for (ApiQuestion apiQuestion : apiQuestions) {
+                if (questionId.equals(apiQuestion.getId()) && 
+                    apiQuestion.getEssay() != null && 
+                    apiQuestion.getEssay().getAnswer() != null) {
+                    String answerText = apiQuestion.getEssay().getAnswer().getAnswerText();
+                    return answerText != null ? answerText : "";
+                }
+            }
+        }
+        return "";
+    }
+    
+    private void navigateToPreviousQuestion() {
+        if (currentQuestionIndex > 0) {
+            saveCurrentAnswer();
+            currentQuestionIndex--;
+            loadQuestion(currentQuestionIndex);
+            updateNavigationButtons();
+        }
+    }
+    
+    private void navigateToNextQuestion() {
+        if (currentQuestionIndex < questions.size() - 1) {
+            saveCurrentAnswer();
+            currentQuestionIndex++;
+            loadQuestion(currentQuestionIndex);
+            updateNavigationButtons();
+        } else {
+            // This is the last question, finish the test
+            finishTest();
+        }
+    }
+    
+    private void markCurrentQuestion() {
+        // Toggle mark status for current question
+        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+        if (fragment instanceof QuestionFragment) {
+            ((QuestionFragment) fragment).toggleMarkStatus();
+        }
+        
+        // Update mark button appearance
+        updateMarkButton();
+    }
+    
+    private void updateMarkButton() {
+        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+        if (fragment instanceof QuestionFragment) {
+            boolean isMarked = ((QuestionFragment) fragment).isMarked();
+            if (isMarked) {
+                btnMark.setText("Unmark");
+                btnMark.setTextColor(getResources().getColor(android.R.color.holo_orange_light));
+            } else {
+                btnMark.setText("Mark");
+                btnMark.setTextColor(getResources().getColor(android.R.color.white));
+            }
+        }
+    }
+    
+    private void updateNavigationButtons() {
+        // Update Previous button
+        btnPrevious.setEnabled(currentQuestionIndex > 0);
+        
+        // Update Next button
+        if (currentQuestionIndex == questions.size() - 1) {
+            btnNext.setText("Finish");
+        } else {
+            btnNext.setText("Next");
+        }
+        
+        updateMarkButton();
+    }
+    
+    private void saveCurrentAnswer() {
+        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+        if (fragment instanceof QuestionFragment) {
+            String answer = ((QuestionFragment) fragment).getCurrentAnswer();
+            boolean isMarked = ((QuestionFragment) fragment).isMarked();
+            
+            // Save answer to participant data
+            Question currentQuestion = questions.get(currentQuestionIndex);
+            updateAnswerInData(currentQuestion.getId(), answer, isMarked);
+        }
+    }    private void updateAnswerInData(String questionId, String answerText, boolean isMarked) {
+        // Update answer in the API data structure
+        if (apiQuestions != null) {
+            for (ApiQuestion apiQuestion : apiQuestions) {
+                if (questionId.equals(apiQuestion.getId()) && 
+                    apiQuestion.getEssay() != null && 
+                    apiQuestion.getEssay().getAnswer() != null) {
+                    apiQuestion.getEssay().getAnswer().setAnswerText(answerText);
+                    return;
+                }
+            }
+        }
+        Log.w("TestStartActivity", "Answer not found for question: " + questionId);
+    }
+    
+    private void finishTest() {
+        saveCurrentAnswer();
+        
+        // For now, just show a message and finish
+        Toast.makeText(this, "Test completed!", Toast.LENGTH_SHORT).show();
+        
+        // TODO: Submit answers to server
+        
+        finish();
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (countDownTimer != null) {
+            countDownTimer.cancel();
+        }
+    }    @SuppressWarnings("MissingSuperCall")
+    @Override
+    public void onBackPressed() {
+        // Prevent user from going back during test
+        Toast.makeText(this, "Cannot go back during test", Toast.LENGTH_SHORT).show();
+        // Intentionally not calling super.onBackPressed() to prevent going back
+    }
+}
