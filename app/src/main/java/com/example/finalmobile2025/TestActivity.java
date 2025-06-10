@@ -30,7 +30,8 @@ public class TestActivity extends AppCompatActivity {
     private TextView tvTestTitle;
     private TextView tvTestDuration;
     private TextView tvQuestionCount;
-    private TextView tvParticipantCount;    private MaterialButton btnStartTest;
+    private TextView tvParticipantCount;    
+    private MaterialButton btnStartTest;
     private MaterialButton btnConfirm; // Add this field
     private String joinCode;
     private String testTitle;    private String testDescription;
@@ -49,7 +50,8 @@ public class TestActivity extends AppCompatActivity {
         // Get data from intent
         joinCode = getIntent().getStringExtra("JOIN_CODE");
         testTitle = getIntent().getStringExtra("TEST_TITLE");
-        testDescription = getIntent().getStringExtra("TEST_DESCRIPTION");        testDuration = getIntent().getIntExtra("TEST_DURATION", 0);
+        testDescription = getIntent().getStringExtra("TEST_DESCRIPTION");        
+        testDuration = getIntent().getIntExtra("TEST_DURATION", 0);
         acceptResponses = getIntent().getBooleanExtra("ACCEPT_RESPONSES", false);
         
         participantDAO = new ParticipantDAO(this);
@@ -133,6 +135,8 @@ public class TestActivity extends AppCompatActivity {
         // Show loading state
         btnConfirm.setEnabled(false);
         btnConfirm.setText("Starting...");
+        btnStartTest.setEnabled(false);
+        btnStartTest.setText("Starting...");
         
         // Create request
         StartTestRequest request = new StartTestRequest(username);
@@ -178,6 +182,8 @@ public class TestActivity extends AppCompatActivity {
     private void resetConfirmButton() {
         btnConfirm.setEnabled(true);
         btnConfirm.setText("Confirm");
+        btnStartTest.setEnabled(true);
+        btnStartTest.setText("Start Test");
     }
     
     private void setupPolling() {
