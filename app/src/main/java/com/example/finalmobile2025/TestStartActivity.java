@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.TextView;
@@ -325,8 +326,13 @@ public class TestStartActivity extends AppCompatActivity {
         // Update Next button
         if (currentQuestionIndex == questions.size() - 1) {
             btnNext.setText("Finish");
+            btnNext.setBackgroundColor(getResources().getColor(R.color.success));
         } else {
             btnNext.setText("Next");
+            // Resolve colorPrimary attribute to a color
+            TypedValue typedValue = new TypedValue();
+            getTheme().resolveAttribute(com.google.android.material.R.attr.colorPrimary, typedValue, true);
+            btnNext.setBackgroundColor(typedValue.data);
         }
         
         updateMarkButton();

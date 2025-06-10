@@ -110,9 +110,8 @@
             android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="14sp"
             style="@style/Widget.Material3.Button.TextButton"
-            app:cornerRadius="8dp" />
-
-        <!-- Next Button -->
+            app:cornerRadius="8dp" />        
+        <!-- Next/Finish Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_next"
             android:layout_width="0dp"
