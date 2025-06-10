@@ -44,13 +44,15 @@ public class TestResultActivity extends AppCompatActivity {
         initViews();
         setupClickListeners();
         fetchTestResult();
-    }
-
-    private void initViews() {
+    }    private void initViews() {
         tvUsername = findViewById(R.id.tv_username);
         tvScore = findViewById(R.id.tv_score);
         tvTestTitle = findViewById(R.id.tv_test_title);
         btnBackToHome = findViewById(R.id.btn_back_to_home);
+        
+        // Disable button and show loading state initially
+        btnBackToHome.setEnabled(false);
+        btnBackToHome.setText("Loading data...");
     }
 
     private void setupClickListeners() {
@@ -93,9 +95,7 @@ public class TestResultActivity extends AppCompatActivity {
                 showFallbackData();
             }
         });
-    }
-
-    private void displayResult(TestResultResponse result) {
+    }    private void displayResult(TestResultResponse result) {
         if (result.getParticipant() != null) {
             tvUsername.setText(result.getParticipant().getUsername());
             
@@ -111,11 +111,22 @@ public class TestResultActivity extends AppCompatActivity {
         if (result.getTest() != null) {
             tvTestTitle.setText(result.getTest().getTitle());
         }
+        
+        // Enable button and restore original text after data is loaded
+        enableBackButton();
     }    private void showFallbackData() {
         // Show some default data if API call fails
         tvUsername.setText("Participant");
         tvScore.setText("--");
         tvTestTitle.setText("Test Completed");
+        
+        // Enable button even if API fails
+        enableBackButton();
+    }
+    
+    private void enableBackButton() {
+        btnBackToHome.setEnabled(true);
+        btnBackToHome.setText("Back to Home");
     }
 
     private void deleteParticipantData() {
