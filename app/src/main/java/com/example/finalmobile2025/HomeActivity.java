@@ -4,6 +4,9 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.InputFilter;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -30,17 +33,53 @@ public class HomeActivity extends AppCompatActivity {
         initViews();
         setupClickListeners();
     }
-    
-    private void initViews() {
+      private void initViews() {
         etJoinCode = findViewById(R.id.et_join_code);
         btnJoin = findViewById(R.id.btn_join);
-    }
-      private void setupClickListeners() {
+        
+        // Set up input filters to ensure uppercase and 6 character limit
+        InputFilter uppercaseFilter = new InputFilter.AllCaps();
+        InputFilter lengthFilter = new InputFilter.LengthFilter(6);
+        etJoinCode.setFilters(new InputFilter[]{uppercaseFilter, lengthFilter});
+        
+        // Add TextWatcher to handle real-time input validation
+        etJoinCode.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                // Not needed
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // Clear any previous errors when user starts typing
+                if (s.length() > 0) {
+                    etJoinCode.setError(null);
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                // Ensure text is uppercase (additional safety)
+                String upperText = s.toString().toUpperCase();
+                if (!s.toString().equals(upperText)) {
+                    etJoinCode.removeTextChangedListener(this);
+                    etJoinCode.setText(upperText);
+                    etJoinCode.setSelection(upperText.length());
+                    etJoinCode.addTextChangedListener(this);
+                }
+            }
+        });
+    }      private void setupClickListeners() {
         btnJoin.setOnClickListener(v -> {
             String joinCode = etJoinCode.getText().toString().trim();
             
             if (joinCode.isEmpty()) {
                 etJoinCode.setError("Please enter a join code");
+                return;
+            }
+            
+            if (joinCode.length() != 6) {
+                etJoinCode.setError("Join code must be exactly 6 characters");
                 return;
             }
             

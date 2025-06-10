@@ -58,15 +58,15 @@
                 android:layout_marginBottom="16dp"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 app:boxStrokeColor="?attr/colorOutline"
-                app:hintTextColor="?attr/colorOnSurfaceVariant">
-
-                <com.google.android.material.textfield.TextInputEditText
+                app:hintTextColor="?attr/colorOnSurfaceVariant">                <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_join_code"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="@string/enter_code_here"
                     android:textColor="?attr/colorOnSurface"
-                    android:textColorHint="?attr/colorOnSurfaceVariant" />
+                    android:textColorHint="?attr/colorOnSurfaceVariant"
+                    android:maxLength="6"
+                    android:inputType="textCapCharacters" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
