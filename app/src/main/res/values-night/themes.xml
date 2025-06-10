@@ -1,7 +1,38 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.FinalMobile2025" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+    <!-- Base application theme with shadcn/ui Dark Theme -->
+    <style name="Base.Theme.FinalMobile2025" parent="Theme.Material3.Dark.NoActionBar">
+        <!-- Primary Colors -->
+        <item name="colorPrimary">@color/dark_primary</item>
+        <item name="colorOnPrimary">@color/dark_primary_foreground</item>
+        <item name="colorPrimaryContainer">@color/dark_secondary</item>
+        <item name="colorOnPrimaryContainer">@color/dark_secondary_foreground</item>
+        
+        <!-- Surface Colors -->
+        <item name="colorSurface">@color/dark_card</item>
+        <item name="colorOnSurface">@color/dark_card_foreground</item>
+        <item name="colorSurfaceVariant">@color/dark_muted</item>
+        <item name="colorOnSurfaceVariant">@color/dark_muted_foreground</item>
+        
+        <!-- Background Colors -->
+        <item name="android:colorBackground">@color/dark_background</item>
+        <item name="colorOnBackground">@color/dark_foreground</item>
+        
+        <!-- Secondary Colors -->
+        <item name="colorSecondary">@color/dark_accent</item>
+        <item name="colorOnSecondary">@color/dark_accent_foreground</item>
+        <item name="colorSecondaryContainer">@color/dark_muted</item>
+        <item name="colorOnSecondaryContainer">@color/dark_muted_foreground</item>
+        
+        <!-- Error Colors -->
+        <item name="colorError">@color/dark_destructive</item>
+        <item name="colorOnError">@color/dark_destructive_foreground</item>
+        
+        <!-- Outline Colors -->
+        <item name="colorOutline">@color/dark_border</item>
+        <item name="colorOutlineVariant">@color/dark_ring</item>
+        
+        <!-- System UI -->
+        <item name="android:statusBarColor">@color/dark_background</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>

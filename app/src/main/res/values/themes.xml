@@ -1,8 +1,39 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.FinalMobile2025" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+    <!-- Base application theme with shadcn/ui Light Theme -->
+    <style name="Base.Theme.FinalMobile2025" parent="Theme.Material3.Light.NoActionBar">
+        <!-- Primary Colors -->
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorOnPrimary">@color/primary_foreground</item>
+        <item name="colorPrimaryContainer">@color/secondary</item>
+        <item name="colorOnPrimaryContainer">@color/secondary_foreground</item>
+        
+        <!-- Surface Colors -->
+        <item name="colorSurface">@color/card</item>
+        <item name="colorOnSurface">@color/card_foreground</item>
+        <item name="colorSurfaceVariant">@color/muted</item>
+        <item name="colorOnSurfaceVariant">@color/muted_foreground</item>
+        
+        <!-- Background Colors -->
+        <item name="android:colorBackground">@color/background</item>
+        <item name="colorOnBackground">@color/foreground</item>
+        
+        <!-- Secondary Colors -->
+        <item name="colorSecondary">@color/accent</item>
+        <item name="colorOnSecondary">@color/accent_foreground</item>
+        <item name="colorSecondaryContainer">@color/muted</item>
+        <item name="colorOnSecondaryContainer">@color/muted_foreground</item>
+        
+        <!-- Error Colors -->
+        <item name="colorError">@color/destructive</item>
+        <item name="colorOnError">@color/destructive_foreground</item>
+        
+        <!-- Outline Colors -->
+        <item name="colorOutline">@color/border</item>
+        <item name="colorOutlineVariant">@color/ring</item>
+        
+        <!-- System UI -->
+        <item name="android:statusBarColor">@color/background</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 
     <style name="Theme.FinalMobile2025" parent="Base.Theme.FinalMobile2025" />
