@@ -5,10 +5,13 @@ import com.example.finalmobile2025.models.TestDetailsResponse;
 import com.example.finalmobile2025.models.StartTestRequest;
 import com.example.finalmobile2025.models.StartTestResponse;
 import com.example.finalmobile2025.models.ParticipantData;
+import com.example.finalmobile2025.models.EssayAnswerRequest;
+import com.example.finalmobile2025.models.EssayAnswerResponse;
 
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
+import retrofit2.http.PATCH;
 import retrofit2.http.POST;
 import retrofit2.http.Path;
 
@@ -25,4 +28,7 @@ public interface ApiService {
     
     @GET("participant/{participantId}")
     Call<ParticipantData> getParticipantData(@Path("participantId") String participantId);
+    
+    @PATCH("answer/essay")
+    Call<EssayAnswerResponse> submitEssayAnswer(@Body EssayAnswerRequest request);
 }

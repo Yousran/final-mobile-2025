@@ -17,12 +17,16 @@ import com.example.finalmobile2025.api.ApiService;
 import com.example.finalmobile2025.database.ParticipantDAO;
 import com.example.finalmobile2025.models.Answer;
 import com.example.finalmobile2025.models.ApiQuestion;
+import com.example.finalmobile2025.models.EssayAnswerRequest;
+import com.example.finalmobile2025.models.EssayAnswerResponse;
 import com.example.finalmobile2025.models.ParticipantData;
 import com.example.finalmobile2025.models.Question;
 import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -36,12 +40,16 @@ public class TestStartActivity extends AppCompatActivity {
     private MaterialButton btnMark;
     private MaterialButton btnNext;
     
-    private String participantId;    private ParticipantData participantData;
+    private String participantId;
+    private ParticipantData participantData;
     private List<Question> questions;
     private List<ApiQuestion> apiQuestions;
     private int currentQuestionIndex = 0;
     private CountDownTimer countDownTimer;
     private ParticipantDAO participantDAO;
+    
+    // Track previous answers to detect changes
+    private Map<String, String> previousAnswers = new HashMap<>();
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,8 +114,7 @@ public class TestStartActivity extends AppCompatActivity {
                 finish();
             }
         });
-    }
-      private void setupTestInterface() {
+    }      private void setupTestInterface() {
         // Set participant info
         tvUsername.setText(participantData.getUsername());
         
@@ -126,6 +133,9 @@ public class TestStartActivity extends AppCompatActivity {
         
         // Convert ApiQuestion to Question for compatibility
         questions = convertApiQuestionsToQuestions(apiQuestions);
+        
+        // Initialize previous answers map with current answers from API
+        initializePreviousAnswers();
         
         // Start timer
         startTimer(participantData.getTimeRemaining());
@@ -149,6 +159,23 @@ public class TestStartActivity extends AppCompatActivity {
             convertedQuestions.add(question);
         }
         return convertedQuestions;
+    }
+    
+    private void initializePreviousAnswers() {
+        // Initialize the previous answers map with current answers from the API
+        if (apiQuestions != null) {
+            for (ApiQuestion apiQuestion : apiQuestions) {
+                if ("ESSAY".equals(apiQuestion.getType()) &&
+                    apiQuestion.getEssay() != null && 
+                    apiQuestion.getEssay().getAnswer() != null) {
+                    
+                    String questionId = apiQuestion.getId();
+                    String answerText = apiQuestion.getEssay().getAnswer().getAnswerText();
+                    previousAnswers.put(questionId, answerText != null ? answerText : "");
+                }
+            }
+        }
+        Log.d("TestStartActivity", "Initialized previous answers for " + previousAnswers.size() + " essay questions");
     }
     
     private String stripHtmlTags(String html) {
@@ -214,19 +241,17 @@ public class TestStartActivity extends AppCompatActivity {
         }
         return "";
     }
-    
-    private void navigateToPreviousQuestion() {
+      private void navigateToPreviousQuestion() {
         if (currentQuestionIndex > 0) {
-            saveCurrentAnswer();
+            saveCurrentAnswerAndSubmitIfChanged();
             currentQuestionIndex--;
             loadQuestion(currentQuestionIndex);
             updateNavigationButtons();
         }
     }
-    
-    private void navigateToNextQuestion() {
+      private void navigateToNextQuestion() {
         if (currentQuestionIndex < questions.size() - 1) {
-            saveCurrentAnswer();
+            saveCurrentAnswerAndSubmitIfChanged();
             currentQuestionIndex++;
             loadQuestion(currentQuestionIndex);
             updateNavigationButtons();
@@ -299,9 +324,91 @@ public class TestStartActivity extends AppCompatActivity {
         }
         Log.w("TestStartActivity", "Answer not found for question: " + questionId);
     }
-    
-    private void finishTest() {
-        saveCurrentAnswer();
+      private void submitEssayAnswerToServer(String questionId, String answerText) {
+        // Find the answer ID for this question
+        String answerId = getAnswerIdForQuestion(questionId);
+        if (answerId == null) {
+            Log.w("TestStartActivity", "Answer ID not found for question: " + questionId);
+            return;
+        }
+
+        EssayAnswerRequest request = new EssayAnswerRequest(answerId, participantId, answerText);
+        ApiService apiService = ApiClient.getApiService();
+        Call<EssayAnswerResponse> call = apiService.submitEssayAnswer(request);
+
+        call.enqueue(new Callback<EssayAnswerResponse>() {
+            @Override
+            public void onResponse(Call<EssayAnswerResponse> call, Response<EssayAnswerResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    EssayAnswerResponse essayResponse = response.body();
+                    Log.d("TestStartActivity", "Essay answer submitted successfully for question: " + questionId);
+                    if (essayResponse.getAnswer() != null) {
+                        Log.d("TestStartActivity", "Server response - Score: " + essayResponse.getAnswer().getScore());
+                    }
+                } else {
+                    Log.e("TestStartActivity", "Failed to submit essay answer: " + response.code() + " " + response.message());
+                    // Note: We don't revert the previousAnswers map here, so if the user navigates again
+                    // without changing the answer, it won't try to submit again unless they actually modify it
+                }
+            }
+
+            @Override
+            public void onFailure(Call<EssayAnswerResponse> call, Throwable t) {
+                Log.e("TestStartActivity", "Error submitting essay answer: " + t.getMessage());
+                // Note: Network failures don't revert the previousAnswers map either
+                // This prevents spam retries on every navigation if there's a persistent network issue
+            }
+        });
+    }
+
+    private String getAnswerIdForQuestion(String questionId) {
+        if (apiQuestions != null) {
+            for (ApiQuestion apiQuestion : apiQuestions) {
+                if (questionId.equals(apiQuestion.getId()) && 
+                    apiQuestion.getEssay() != null && 
+                    apiQuestion.getEssay().getAnswer() != null) {
+                    return apiQuestion.getEssay().getAnswer().getId();
+                }
+            }
+        }
+        return null;
+    }
+
+    private void saveCurrentAnswerAndSubmitIfChanged() {
+        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+        if (fragment instanceof QuestionFragment) {
+            String currentAnswer = ((QuestionFragment) fragment).getCurrentAnswer();
+            boolean isMarked = ((QuestionFragment) fragment).isMarked();
+            
+            Question currentQuestion = questions.get(currentQuestionIndex);
+            String questionId = currentQuestion.getId();
+            
+            // Check if this is an essay question and answer has changed
+            if ("ESSAY".equals(currentQuestion.getQuestionType())) {
+                String previousAnswer = previousAnswers.get(questionId);
+                if (previousAnswer == null) {
+                    previousAnswer = "";
+                }
+                
+                // Only submit if answer has changed
+                if (!currentAnswer.equals(previousAnswer)) {
+                    Log.d("TestStartActivity", "Answer changed for question " + questionId + ", submitting to server");
+                    Log.d("TestStartActivity", "Previous: '" + previousAnswer + "' -> Current: '" + currentAnswer + "'");
+                    submitEssayAnswerToServer(questionId, currentAnswer);
+                    // Update the previous answer tracker
+                    previousAnswers.put(questionId, currentAnswer);
+                } else {
+                    Log.d("TestStartActivity", "No change in answer for question " + questionId + ", skipping submission");
+                }
+            } else {
+                Log.d("TestStartActivity", "Question " + questionId + " is not an essay question (type: " + currentQuestion.getQuestionType() + "), skipping API submission");
+            }
+            
+            // Save answer to local data structure
+            updateAnswerInData(questionId, currentAnswer, isMarked);
+        }
+    }    private void finishTest() {
+        saveCurrentAnswerAndSubmitIfChanged();
         
         // For now, just show a message and finish
         Toast.makeText(this, "Test completed!", Toast.LENGTH_SHORT).show();
