@@ -7,6 +7,7 @@ import com.example.finalmobile2025.models.StartTestResponse;
 import com.example.finalmobile2025.models.ParticipantData;
 import com.example.finalmobile2025.models.EssayAnswerRequest;
 import com.example.finalmobile2025.models.EssayAnswerResponse;
+import com.example.finalmobile2025.models.TestResultResponse;
 
 import retrofit2.Call;
 import retrofit2.http.Body;
@@ -31,4 +32,7 @@ public interface ApiService {
     
     @PATCH("answer/essay")
     Call<EssayAnswerResponse> submitEssayAnswer(@Body EssayAnswerRequest request);
+    
+    @GET("test/result/{participantId}")
+    Call<TestResultResponse> getTestResult(@Path("participantId") String participantId);
 }

@@ -1,14 +1,18 @@
 package com.example.finalmobile2025;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import android.content.Intent;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -248,17 +252,45 @@ public class TestStartActivity extends AppCompatActivity {
             loadQuestion(currentQuestionIndex);
             updateNavigationButtons();
         }
-    }
-      private void navigateToNextQuestion() {
+    }    private void navigateToNextQuestion() {
         if (currentQuestionIndex < questions.size() - 1) {
             saveCurrentAnswerAndSubmitIfChanged();
             currentQuestionIndex++;
             loadQuestion(currentQuestionIndex);
             updateNavigationButtons();
         } else {
-            // This is the last question, finish the test
-            finishTest();
+            // This is the last question, show confirmation dialog before finishing
+            showFinishConfirmationDialog();
+        }    }
+      private void showFinishConfirmationDialog() {
+        // Inflate the custom dialog layout
+        LayoutInflater inflater = getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.dialog_confirm_finish, null);
+        
+        // Get dialog components
+        com.google.android.material.button.MaterialButton btnCancelFinish = dialogView.findViewById(R.id.btn_cancel_finish);
+        com.google.android.material.button.MaterialButton btnConfirmFinish = dialogView.findViewById(R.id.btn_confirm_finish);
+        
+        // Create and configure the dialog
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(dialogView);
+        AlertDialog dialog = builder.create();
+        
+        // Make dialog background transparent for custom rounded corners
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         }
+        
+        // Set up button click listeners
+        btnCancelFinish.setOnClickListener(v -> dialog.dismiss());
+        
+        btnConfirmFinish.setOnClickListener(v -> {
+            // User confirmed, finish the test
+            finishTest();
+            dialog.dismiss();
+        });
+        
+        dialog.show();
     }
     
     private void markCurrentQuestion() {
@@ -410,11 +442,14 @@ public class TestStartActivity extends AppCompatActivity {
     }    private void finishTest() {
         saveCurrentAnswerAndSubmitIfChanged();
         
-        // For now, just show a message and finish
+        // Show completion message
         Toast.makeText(this, "Test completed!", Toast.LENGTH_SHORT).show();
         
-        // TODO: Submit answers to server
-        
+        // Navigate to result screen
+        Intent intent = new Intent(this, TestResultActivity.class);
+        intent.putExtra("PARTICIPANT_ID", participantId);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
         finish();
     }
     
