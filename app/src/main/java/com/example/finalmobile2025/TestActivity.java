@@ -68,6 +68,7 @@ public class TestActivity extends AppCompatActivity {
         tvQuestionCount = findViewById(R.id.tv_question_count);
         tvParticipantCount = findViewById(R.id.tv_participant_count);
         btnStartTest = findViewById(R.id.btn_start_test);
+        btnStartTest.setEnabled(true);
     }    private void setupTestInfo() {
         // Set test information from fetched data
         if (testTitle != null && !testTitle.isEmpty()) {
@@ -156,6 +157,8 @@ public class TestActivity extends AppCompatActivity {
                     long result = participantDAO.insertParticipant(participantId, username, joinCode);
                     
                     if (result != -1) {
+                        btnStartTest.setEnabled(false);
+                        btnStartTest.setText("Starting...");
                         // Successfully stored, navigate to test activity
                         Intent intent = new Intent(TestActivity.this, TestStartActivity.class);
                         intent.putExtra("PARTICIPANT_ID", participantId);
