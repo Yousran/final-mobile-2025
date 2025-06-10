@@ -51,9 +51,13 @@ public class TestStartActivity extends AppCompatActivity {
     private int currentQuestionIndex = 0;
     private CountDownTimer countDownTimer;
     private ParticipantDAO participantDAO;
-    
-    // Track previous answers to detect changes
+      // Track previous answers to detect changes
     private Map<String, String> previousAnswers = new HashMap<>();
+      // Track if essay submission is in progress
+    private boolean isEssaySubmissionInProgress = false;
+    
+    // Reference to the dialog confirm button for dynamic updates
+    private MaterialButton dialogConfirmButton = null;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -259,15 +263,15 @@ public class TestStartActivity extends AppCompatActivity {
             loadQuestion(currentQuestionIndex);
             updateNavigationButtons();
         }
-    }
-      private void showFinishConfirmationDialog() {
+    }    private void showFinishConfirmationDialog() {
+        saveCurrentAnswerAndSubmitIfChanged();
         // Inflate the custom dialog layout
         LayoutInflater inflater = getLayoutInflater();
         View dialogView = inflater.inflate(R.layout.dialog_confirm_finish, null);
         
         // Get dialog components
         com.google.android.material.button.MaterialButton btnCancelFinish = dialogView.findViewById(R.id.btn_cancel_finish);
-        com.google.android.material.button.MaterialButton btnConfirmFinish = dialogView.findViewById(R.id.btn_confirm_finish);
+        dialogConfirmButton = dialogView.findViewById(R.id.btn_confirm_finish);
         
         // Create and configure the dialog
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -279,14 +283,29 @@ public class TestStartActivity extends AppCompatActivity {
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         }
         
-        // Set up button click listeners
-        btnCancelFinish.setOnClickListener(v -> dialog.dismiss());
+        // Set initial button state
+        updateDialogConfirmButtonState();
         
-        btnConfirmFinish.setOnClickListener(v -> {
-            // User confirmed, finish the test
-            finishTest();
+        // Set up button click listeners
+        btnCancelFinish.setOnClickListener(v -> {
+            dialogConfirmButton = null; // Clear reference when dialog is dismissed
             dialog.dismiss();
         });
+        
+        dialogConfirmButton.setOnClickListener(v -> {
+            // Only allow finishing if no essay submission is in progress
+            if (!isEssaySubmissionInProgress) {
+                // User confirmed, finish the test
+                dialogConfirmButton = null; // Clear reference before finishing
+                finishTest();
+                dialog.dismiss();
+            } else {
+                Toast.makeText(TestStartActivity.this, "Please wait for answer submission to complete", Toast.LENGTH_SHORT).show();
+            }
+        });
+        
+        // Clear reference when dialog is dismissed
+        dialog.setOnDismissListener(d -> dialogConfirmButton = null);
         
         dialog.show();
     }
@@ -364,8 +383,10 @@ public class TestStartActivity extends AppCompatActivity {
             return;
         }
 
-        // Disable finish button while submitting
-        btnFinish.setEnabled(false);
+        // Set submission in progress flag
+        isEssaySubmissionInProgress = true;
+        // Update dialog button state if dialog is open
+        updateDialogConfirmButtonState();
 
         EssayAnswerRequest request = new EssayAnswerRequest(answerId, participantId, answerText);
         ApiService apiService = ApiClient.getApiService();
@@ -374,8 +395,10 @@ public class TestStartActivity extends AppCompatActivity {
         call.enqueue(new Callback<EssayAnswerResponse>() {
             @Override
             public void onResponse(Call<EssayAnswerResponse> call, Response<EssayAnswerResponse> response) {
-                // Re-enable finish button after response
-                btnFinish.setEnabled(true);
+                // Clear submission in progress flag after response
+                isEssaySubmissionInProgress = false;
+                // Update dialog button state if dialog is open
+                updateDialogConfirmButtonState();
                 
                 if (response.isSuccessful() && response.body() != null) {
                     EssayAnswerResponse essayResponse = response.body();
@@ -392,8 +415,10 @@ public class TestStartActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<EssayAnswerResponse> call, Throwable t) {
-                // Re-enable finish button after failure
-                btnFinish.setEnabled(true);
+                // Clear submission in progress flag after failure
+                isEssaySubmissionInProgress = false;
+                // Update dialog button state if dialog is open
+                updateDialogConfirmButtonState();
                 
                 Log.e("TestStartActivity", "Error submitting essay answer: " + t.getMessage());
                 // Note: Network failures don't revert the previousAnswers map either
@@ -449,7 +474,6 @@ public class TestStartActivity extends AppCompatActivity {
             updateAnswerInData(questionId, currentAnswer, isMarked);
         }
     }    private void finishTest() {
-        saveCurrentAnswerAndSubmitIfChanged();
         
         // Show completion message
         Toast.makeText(this, "Test completed!", Toast.LENGTH_SHORT).show();
@@ -474,5 +498,16 @@ public class TestStartActivity extends AppCompatActivity {
         // Prevent user from going back during test
         Toast.makeText(this, "Cannot go back during test", Toast.LENGTH_SHORT).show();
         // Intentionally not calling super.onBackPressed() to prevent going back
+    }
+    
+    private void updateDialogConfirmButtonState() {
+        if (dialogConfirmButton != null) {
+            dialogConfirmButton.setEnabled(!isEssaySubmissionInProgress);
+            if (isEssaySubmissionInProgress) {
+                dialogConfirmButton.setText("Submitting...");
+            } else {
+                dialogConfirmButton.setText("Finish Test");
+            }
+        }
     }
 }
