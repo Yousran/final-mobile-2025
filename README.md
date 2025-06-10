@@ -80,11 +80,13 @@ Untuk mendapatkan salinan lokal dan menjalankannya, ikuti langkah-langkah sederh
 
 ## Tangkapan Layar
 
-<img src="https://picsum.photos/300/600?random=1" width="200">
-<img src="https://picsum.photos/300/600?random=2" width="200">
-<img src="https://picsum.photos/300/600?random=3" width="200">
-<img src="https://picsum.photos/300/600?random=4" width="200">
-<img src="https://picsum.photos/300/600?random=5" width="200">
+<div align="center">
+<img src="documentation/1.jpg" width="200">
+<img src="documentation/2.jpg" width="200">
+<img src="documentation/3.jpg" width="200">
+<img src="documentation/4.jpg" width="200">
+<img src="documentation/5.jpg" width="200">
+</div>
 
 ## Teknologi yang Digunakan
 
